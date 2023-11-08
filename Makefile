@@ -9,6 +9,7 @@ build:
 
 test:
 	go test -v -race -tags=unit -cover ./compute
+	go test -v -race -tags=unit -cover ./errors
 
 clean:
 	rm main
