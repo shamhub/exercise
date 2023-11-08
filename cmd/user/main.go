@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/shamhub/exercise/compute"
+)
 
 func main() {
-	fmt.Println("xyz")
+	result := compute.Fib(0)
+	fmt.Println(result)
 }
