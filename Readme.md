@@ -1,5 +1,5 @@
 # Coding exercise
-# ---------------
+# 
 
 ### To run the program
 > `make runuser``
