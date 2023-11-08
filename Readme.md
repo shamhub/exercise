@@ -2,8 +2,8 @@
 
 
 ### To run the program
-> `make runuser``
+> `make runuser`
 
 
 ### To test the program
-> `make test``
+> `make test`
