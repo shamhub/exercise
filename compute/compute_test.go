@@ -39,3 +39,9 @@ func TestSplit(t *testing.T) {
 	assert.Equal(t, 9, last)
 	assert.Equal(t, 0, allButLast)
 }
+
+func TestFactZero(t *testing.T) {
+	result, err := Fact(0)
+	assert.Equal(t, 1, result)
+	assert.Nil(t, err)
+}

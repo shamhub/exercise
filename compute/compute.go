@@ -2,6 +2,22 @@ package compute
 
 import "fmt"
 
+func Fact(n int) (int, error) {
+	if n < 0 {
+		return -1, fmt.Errorf("invalid input")
+	}
+
+	var FactRecur func(int) (int, error)
+	FactRecur = func(n int) (int, error) {
+		if n == 0 {
+			return 1, nil
+		}
+		result, err := FactRecur(n - 1)
+		return n * result, err
+	}
+	return FactRecur(n)
+}
+
 func SumDigits(n int) (int, error) {
 	if n < 0 {
 		return -1, fmt.Errorf("invalid input")
