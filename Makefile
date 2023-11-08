@@ -7,7 +7,7 @@ runuser:
 build:
 	go build  -o main cmd/user/main.go
 
-testcompute:
+test:
 	go test -v -race -tags=unit -cover ./compute
 
 clean:
