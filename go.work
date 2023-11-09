@@ -2,5 +2,9 @@ go 1.20
 
 use (
 	./compute
+	./data
 	./errors
+	./extract
+	./load
+	./transform
 )
