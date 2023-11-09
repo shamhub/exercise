@@ -10,7 +10,7 @@ import (
 )
 
 func TestReadEntry(t *testing.T) {
-	var reader *TimeSeriesJSONReader = &TimeSeriesJSONReader{filePath: "../data.json"}
+	reader := NewJSONReader("../data.json")
 	assert.NotNil(t, reader)
 	actualData := reader.ReadEntry()
 	expectedDateTime := "2023-06-27 22:22:19.62710.192501"
