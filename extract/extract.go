@@ -30,7 +30,7 @@ func NewJSONReader(filePath string) *TimeSeriesJSONReader {
 	}
 }
 
-// Read a line
+// Read a line and return the data
 func (t *TimeSeriesJSONReader) ReadEntry() *data.TimeSeriesData {
 
 	defer t.file.Close()
