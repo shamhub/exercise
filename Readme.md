@@ -1,7 +1,7 @@
 ### Running instructions
-    - Install GO 1.21
-    - Invoke `make run` for backend to listen http requests  on `localhost:3000`
-    - Run GET api, as mentioned in API section
+    - Install GO 1.21 version locally
+    - Invoke `make run` for backend to listen http requests  on port `:3000`
+    - Run GET api, as mentioned in API section below
 
 
 ### API for weather service

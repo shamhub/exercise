@@ -1,6 +1,9 @@
 PHONY: run build clean test
 
-run:
+depends:
+	go mod tidy
+
+run: depends
 	go run cmd/weather/main.go
 
 
