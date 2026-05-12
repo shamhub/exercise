@@ -6,6 +6,5 @@ import (
 
 func main() {
 
-	// 3. Implement handlers
 	handler.GET("/api/v1/user/{userId}", handler.GetUserId)
 }
