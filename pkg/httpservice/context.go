@@ -21,7 +21,7 @@ type RequestContext struct {
 	payloadKey     payloadKeyType
 }
 
-func newContextInjector(r *http.Request) *RequestContext {
+func newContextInjector() *RequestContext {
 	return &RequestContext{
 		ctx:            context.Background(),
 		queryParamsKey: "queryParams",
@@ -99,7 +99,7 @@ func (c *RequestContext) GetQueryParams() (map[string][]string, error) {
 	}
 	val, ok := c.ctx.Value(c.queryParamsKey).(url.Values)
 	if !ok {
-		return map[string][]string{}, errors.New("query parameters not found in context.")
+		return map[string][]string{}, errors.New("query parameters not found in context")
 	}
 
 	return val, nil

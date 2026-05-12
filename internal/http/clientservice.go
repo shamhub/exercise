@@ -50,6 +50,7 @@ func NewHTTPServiceWithOptions(hostportURL string) *HttpClientService {
 func (h *HttpClientService) Get(ctx context.Context, api string, queryParams map[string]interface{}) (*Response, error) {
 	return h.GetWithHeaders(ctx, api, queryParams, map[string]string{})
 }
+
 func (h *HttpClientService) GetWithHeaders(ctx context.Context, api string, queryParams map[string]interface{},
 	headers map[string]string) (*Response, error) {
 	return h.callService(ctx, http.MethodGet, api, queryParams, nil, headers)

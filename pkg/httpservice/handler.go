@@ -14,7 +14,7 @@ func (h MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resourcePath := r.URL.Path
 
-	injector := newContextInjector(r)
+	injector := newContextInjector()
 
 	injector.injectRequestContext(r)
 
@@ -29,13 +29,14 @@ func (h MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func processData(w http.ResponseWriter, data interface{}) {
 	fmt.Println("processing data")
-	encodedData, err := json.Marshal(data)
-	if err != nil {
-		marshalErrorResponse(w, err)
-	}
+	// encodedData, err := json.Marshal(data)
+	// if err != nil {
+	// 	marshalErrorResponse(w, err)
+	// }
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(encodedData)
+	json.NewEncoder(w).Encode(data)
+	// w.Write(encodedData)
 }
 
 func processError(w http.ResponseWriter, resourcePath string, err error) {
