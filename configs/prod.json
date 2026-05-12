@@ -49,7 +49,7 @@
     "responses": {
       "route": { 
         "code": 400, 
-        "message": "Invalid combination: Org ID \(.params.orgId) and Department ID \(.params.deptId) format mismatch"
+        "message": "Invalid combination: Org ID (.params.orgId) and Department ID (.params.deptId) format mismatch"
       },
       "headers": { "code": 401, "message": "Missing or invalid Authorization header" }
     }
@@ -61,7 +61,7 @@
       "payload": ".body.status == \"completed\""
     },
     "responses": {
-      "route": { "code": 400, "message": "Invalid combination: Org ID \(.params.orgId) and Department ID \(.params.deptId) - must not match" },
+      "route": { "code": 400, "message": "Invalid combination: Org ID (.params.orgId) and Department ID (.params.deptId) - must not match" },
       "payload": { "code": 422, "message": "Invalid email address format" }
     }
   }
