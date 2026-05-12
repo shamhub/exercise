@@ -65,10 +65,10 @@ func validateRequest(r *http.Request) errorlib.HttpResponseError {
 	return nil
 }
 
-func findMatch(r *http.Request) (*CompiledRule, map[string]string) {
+func findMatch(r *http.Request) (*CompiledRuleEntry, map[string]string) {
 	params := make(map[string]string)
 
-	var activeRuleCollection []CompiledRule
+	var activeRuleCollection []CompiledRuleEntry
 	if ruleCollection != nil {
 		activeRuleCollection = ruleCollection.GetActiveRules()
 	}
@@ -99,7 +99,7 @@ func findMatch(r *http.Request) (*CompiledRule, map[string]string) {
 	return nil, nil
 }
 
-func validateWithRule(r *http.Request, rule *CompiledRule, params map[string]string) (bool, string) {
+func validateWithRule(r *http.Request, ruleEntry *CompiledRuleEntry, params map[string]string) (bool, string) {
 	// 1. Extract Body (Handle empty bodies gracefully)
 	var body interface{}
 	if r.ContentLength > 0 {
@@ -129,19 +129,20 @@ func validateWithRule(r *http.Request, rule *CompiledRule, params map[string]str
 	json.Unmarshal(data, &inputMap)
 
 	// 3. Run each filter category (route, headers, payload, etc.)
-	for category, query := range rule.Filters {
+	for category, query := range ruleEntry.Filters {
 		iter := query.Run(inputMap)
 		v, ok := iter.Next()
 
+		response := ruleEntry.Responses[category]
 		// If JQ returns an error or anything other than 'true'
 		if !ok {
-			return false, fmt.Sprintf("Validation failed: %s logic error", category)
+			return false, fmt.Sprintf("Validation failed with error code %d logic error %s", response.Code, response.MessageQuery)
 		}
 		if err, ok := v.(error); ok {
 			return false, fmt.Sprintf("%s error: %v", category, err)
 		}
 		if v != true {
-			return false, fmt.Sprintf("Request failed %s validation", category)
+			return false, fmt.Sprintf("Request failed for category %s validation error %s", response.Code, response.MessageQuery)
 		}
 	}
 
@@ -150,14 +151,10 @@ func validateWithRule(r *http.Request, rule *CompiledRule, params map[string]str
 
 func processData(w http.ResponseWriter, data interface{}) {
 	fmt.Println("processing data")
-	// encodedData, err := json.Marshal(data)
-	// if err != nil {
-	// 	marshalErrorResponse(w, err)
-	// }
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
-	// w.Write(encodedData)
 }
 
 func processError(w http.ResponseWriter, resourcePath string, err error) {

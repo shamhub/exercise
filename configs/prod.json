@@ -3,6 +3,9 @@
     "method": "GET",
     "filters": {
       "headers": ".headers[\"User-Agent\"] != null"
+    },
+    "responses": {
+      "headers": { "code": 401, "message": "Missing or invalid User-Agent header" }
     }
   },
   "/api/v1/user/(?P<userId>[^/]+)": {
@@ -10,6 +13,10 @@
     "filters": {
       "route": "(.params.userId | length) > 0",
       "headers": ".headers[\"Authorization\"] != null"
+    },
+    "responses": {
+      "route": { "code": 400, "message": "Invalid User ID format in URL" },
+      "headers": { "code": 401, "message": "Missing or invalid Authorization header" }
     }
   },
   "/api/v1/user/(?P<userId>[^/]+)/profile": {
@@ -17,6 +24,10 @@
     "filters": {
       "route": "(.params.userId | length) > 0",
       "payload": "(.body.display_name | length) >= 3"
+    },
+    "responses": {
+      "route": { "code": 400, "message": "Invalid User ID format in URL" },
+      "payload": { "code": 422, "message": "Invalid Display Name format" }
     }
   },
   "/api/v1/orders": {
@@ -24,6 +35,9 @@
     "filters": {
       "payload": "(.body.items | length) > 0",
       "query": "(.query.priority[0] == \"high\")"
+    },
+    "responses": {
+      "payload": { "code": 422, "message": "Invalid email address format" }
     }
   },
    "/api/v1/org/(?P<orgId>[^/]+)/department/(?P<deptId>[^/]+)": {
@@ -31,6 +45,13 @@
     "filters": {
       "route": "(.params.orgId | length > 0) and (.params.deptId | tonumber > 100)",
       "headers": ".headers[\"X-Access-Level\"] | contains(\"admin\")"
+    },
+    "responses": {
+      "route": { 
+        "code": 400, 
+        "message": "Invalid combination: Org ID \(.params.orgId) and Department ID \(.params.deptId) format mismatch"
+      },
+      "headers": { "code": 401, "message": "Missing or invalid Authorization header" }
     }
   },
   "/api/v1/project/(?P<projId>[^/]+)/task/(?P<taskId>[^/]+)/status": {
@@ -38,6 +59,10 @@
     "filters": {
       "route": ".params.projId != .params.taskId",
       "payload": ".body.status == \"completed\""
+    },
+    "responses": {
+      "route": { "code": 400, "message": "Invalid combination: Org ID \(.params.orgId) and Department ID \(.params.deptId) - must not match" },
+      "payload": { "code": 422, "message": "Invalid email address format" }
     }
   }
 }

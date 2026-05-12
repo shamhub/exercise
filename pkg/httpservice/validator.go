@@ -8,31 +8,40 @@ import (
 	"github.com/itchyny/gojq"
 )
 
+type ResponseDetail struct {
+	Code         int
+	MessageQuery string
+}
+
 // RuleCOnfig matches the struct of each entry in route json file
 type RuleConfig struct {
-	Method  string            `json:"method"`
-	Filters map[string]string `json:"filters"`
+	Method    string                    `json:"method"`
+	Filters   map[string]string         `json:"filters"`
+	Responses map[string]ResponseDetail `json:"responses"`
 }
 
 // CompiledRule holds the pre-compiled assets for a route
-type CompiledRule struct {
+type CompiledRuleEntry struct {
 	PathPattern string
 	Regex       *regexp.Regexp
 	Method      string
-	Filters     map[string]*gojq.Query
+	// Filters: category -> compiled JQ query
+	Filters map[string]*gojq.Query
+	// Responses: category -> code and message
+	Responses map[string]ResponseDetail
 }
 
 type RuleCollector struct {
-	activeRules []CompiledRule
+	activeRules []CompiledRuleEntry
 }
 
 func NewRuleColector() *RuleCollector {
 	return &RuleCollector{
-		activeRules: make([]CompiledRule, 0),
+		activeRules: make([]CompiledRuleEntry, 0),
 	}
 }
 
-func (rC *RuleCollector) GetActiveRules() []CompiledRule {
+func (rC *RuleCollector) GetActiveRules() []CompiledRuleEntry {
 	return rC.activeRules
 }
 
@@ -61,11 +70,12 @@ func (rC *RuleCollector) CollectRules(configData []byte) {
 			compiledFilters[category] = queryStruct
 		}
 
-		rC.activeRules = append(rC.activeRules, CompiledRule{
+		rC.activeRules = append(rC.activeRules, CompiledRuleEntry{
 			PathPattern: path,
 			Regex:       re,
 			Method:      ruleConfig.Method,
 			Filters:     compiledFilters,
+			Responses:   ruleConfig.Responses,
 		})
 	}
 
