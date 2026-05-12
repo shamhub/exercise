@@ -5,7 +5,7 @@
       "headers": ".headers[\"User-Agent\"] != null"
     }
   },
-  "\/api\/v1\/user\/(?P<userId>[^/]+)": {
+  "/api/v1/user/(?P<userId>[^/]+)": {
     "method": "GET",
     "filters": {
       "route": "(.params.userId | length) > 0",
@@ -24,6 +24,20 @@
     "filters": {
       "payload": "(.body.items | length) > 0",
       "query": "(.query.priority[0] == \"high\")"
+    }
+  },
+   "/api/v1/org/(?P<orgId>[^/]+)/department/(?P<deptId>[^/]+)": {
+    "method": "GET",
+    "filters": {
+      "route": "(.params.orgId | length > 0) and (.params.deptId | tonumber > 100)",
+      "headers": ".headers[\"X-Access-Level\"] | contains(\"admin\")"
+    }
+  },
+  "/api/v1/project/(?P<projId>[^/]+)/task/(?P<taskId>[^/]+)/status": {
+    "method": "PATCH",
+    "filters": {
+      "route": ".params.projId != .params.taskId",
+      "payload": ".body.status == \"completed\""
     }
   }
 }
