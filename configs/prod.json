@@ -1,0 +1,29 @@
+{
+  "/api/v1/health": {
+    "method": "GET",
+    "filters": {
+      "headers": ".headers[\"User-Agent\"] != null"
+    }
+  },
+  "\/api\/v1\/user\/(?P<userId>[^/]+)": {
+    "method": "GET",
+    "filters": {
+      "route": "(.params.userId | length) > 0",
+      "headers": ".headers[\"Authorization\"] != null"
+    }
+  },
+  "/api/v1/user/(?P<userId>[^/]+)/profile": {
+    "method": "PATCH",
+    "filters": {
+      "route": "(.params.userId | length) > 0",
+      "payload": "(.body.display_name | length) >= 3"
+    }
+  },
+  "/api/v1/orders": {
+    "method": "POST",
+    "filters": {
+      "payload": "(.body.items | length) > 0",
+      "query": "(.query.priority[0] == \"high\")"
+    }
+  }
+}
