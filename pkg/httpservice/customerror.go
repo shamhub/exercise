@@ -40,7 +40,7 @@ func newCustomErrorForSingleErrorResponse(resourcePath string, err *errorlib.Res
 	currentTimeFormatted := currentTime.Format(dateFormat)
 	return &customError{
 		StatusCode:   err.GetStatusCode(),
-		Reason:       []string{err.ProvideReason()},
+		Reason:       err.ProvideReason(),
 		ResourcePath: resourcePath,
 		RootCause:    responseErrorCause(err),
 		Title:        errorResponseTitle(err),

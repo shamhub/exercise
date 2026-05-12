@@ -24,6 +24,6 @@ func (err *ResponseError) GetStatusCode() int {
 	return err.code
 }
 
-func (err *ResponseError) ProvideReason() string {
-	return err.reason
+func (err *ResponseError) ProvideReason() []string {
+	return []string{err.reason}
 }
