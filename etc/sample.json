@@ -1,10 +1,11 @@
 {
     "gender": "male",
-    "age": 28,
+    "age": 19,
     "name":{
         "title": "Mr",
         "first": "Arlo",
         "last": "king"
     },
+    "email": "a@b.com",
     "Authorization": "Bearer 0099"
 }

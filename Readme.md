@@ -6,3 +6,8 @@
 
 ### API for weather service
     - GET `localhost:3000/weather?lat=39.7456&long=-97.0892`
+
+### Added http handler to render templates
+    - `curl --location 'http://localhost:3000/api/v1/user/johndoe?name=john%20doe' --header 'Authorization: Bearer dfssd' --header 'Content-Type: application/json' --data-raw '{
+    "age": 1,
+    "email": "a@b.com"}'`

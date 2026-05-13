@@ -30,6 +30,16 @@ func GET(path string, handler MyHandler) {
 	router.NewRoute().Methods("GET").Path(path).Handler(handler)
 }
 
+func GETTemplate(path string, handler TemplateHandler) {
+	router := getRouter()
+	router.NewRoute().Methods("GET").Path(path).Handler(handler)
+}
+
+func POSTTemplate(path string, handler TemplateHandler) {
+	router := getRouter()
+	router.NewRoute().Methods("POST").Path(path).Handler(handler)
+}
+
 // waitForShutdown wait for signal from Kubelet or OS
 func WaitForShutdown() {
 

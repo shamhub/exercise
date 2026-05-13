@@ -1,12 +1,15 @@
 package httpservice
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"regexp"
 
-	"github.com/shamhub/exercise/pkg/config"
+	"github.com/itchyny/gojq"
 	"github.com/shamhub/exercise/pkg/errorlib"
 )
 
@@ -15,28 +18,13 @@ type TemplateData struct {
 	Data           interface{}
 }
 
-var ruleCollection *RuleCollector
-
-func init() {
-	// 1. Read environment config
-	configData := config.ReadConfig()
-
-	// 2. Collect activeRules from rules json file
-	if configData != nil {
-		ruleCollection = NewRuleColector()
-		ruleCollection.CollectRules(configData)
-	}
-}
-
 type TemplateHandler func(*RequestContextForTemplate) (interface{}, error)
 
 func (h TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	templateFilePath, httpErr := validateRequest(r)
-	if httpErr != nil && templateFilePath == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(httpErr.GetStatusCode())
-		json.NewEncoder(w).Encode(map[string][]string{"error": httpErr.ProvideReason()})
+	matchedRule, httpErr := validateRequest(r)
+	if httpErr != nil {
+		processError(w, r.URL.Path, httpErr)
 		return
 	}
 
@@ -44,7 +32,7 @@ func (h TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	injector := newTemplateContextInjector()
 
-	injector.injectRequestContextWithTemplate(r, templateFilePath)
+	injector.injectRequestContextWithTemplate(r, matchedRule.TemplateFilePath)
 
 	data, err := h(injector)
 	if err != nil {
@@ -55,105 +43,142 @@ func (h TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	processDataWithTemplates(w, data)
 }
 
-func validateRequest(r *http.Request) (string, errorlib.HttpResponseError) {
+func validateRequest(r *http.Request) (*CompiledRuleEntry, errorlib.HttpResponseError) {
 
-	// 1. Attempt to match the route and extract variables
-	matchedRule, params := findMatch(r)
+	// 1. Identify matching rule based on Method and Path Regex Pattern
+	activeRules := GetActiveRules()
+	if len(activeRules) == 0 {
+		panic("rule config is missing and not loaded")
+	}
+	var matchedRule *CompiledRuleEntry
+	for i := range activeRules {
+		rule := activeRules[i]
+		if (r.Method == rule.Method) && rule.Regex.MatchString(r.URL.Path) {
+			matchedRule = &rule
+			break
+		}
+	}
 
-	// If no rule exists for this path, return error response
+	fmt.Println("matchedrule: ", matchedRule) // map[userId:johndoe] for "/api/v1/user/(?P<userId>[^/]+)"
+
+	// If no rule exists for this path and method, return error response
 	if matchedRule == nil {
-		return "", errorlib.NewResponseError(http.StatusNotFound, "Route not found")
+		return nil, errorlib.NewResponseError(http.StatusBadRequest, "request route is not valid")
 	}
 
-	// 2. Execute validation logic using the matchedRule and params
-	isValid, errorMsg := validateWithRule(r, matchedRule, params)
-	if !isValid {
-		return "", errorlib.NewResponseError(http.StatusBadRequest, errorMsg)
-	}
-	return matchedRule.TemplateFilePath, nil
-}
-
-func findMatch(r *http.Request) (*CompiledRuleEntry, map[string]string) {
-	params := make(map[string]string)
-
-	var activeRuleCollection []CompiledRuleEntry
-	if ruleCollection != nil {
-		activeRuleCollection = ruleCollection.GetActiveRules()
-	}
-	for _, rule := range activeRuleCollection {
-		// 1. Verify HTTP Method (skip if rule specifies a method and it doesn't match)
-		if rule.Method != "" && rule.Method != r.Method {
-			continue
+	// 2. Evaluate 'route' Filter Category (expects parameters context)
+	fmt.Println("Evaluating route filter")
+	if filter, ok := matchedRule.Filters["route"]; ok {
+		params := extractNamedMatches(matchedRule.Regex, r.URL.Path)
+		fmt.Println("extractNamedMatches for route params:", params)
+		routeCtx := map[string]any{"params": params}
+		if err := executeFilter(filter, routeCtx); err != nil {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "route validation failed: "+err.Error())
 		}
+	}
 
-		// 2. Check if the URL path matches the regex pattern
-		match := rule.Regex.FindStringSubmatch(r.URL.Path)
-		if match == nil {
-			continue
-		}
-
-		// 3. Extract named captures into the params map
-		// index 0 is the full match, submatches start at index 1
-		groupNames := rule.Regex.SubexpNames()
-		for i, value := range match {
-			if i > 0 && groupNames[i] != "" {
-				params[groupNames[i]] = value
+	// 3. Evaluate 'query_params' Filter Category
+	fmt.Println("Evaluating query_params filter")
+	if filter, ok := matchedRule.Filters["query_params"]; ok {
+		queryCtx := make(map[string]any)
+		for key, values := range r.URL.Query() {
+			if len(values) > 0 {
+				queryCtx[key] = values[0] // Simplify multi-values to standard string for basic match
 			}
 		}
 
-		return &rule, params
+		if err := executeFilter(filter, queryCtx); err != nil {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "query parameters validation failed: "+err.Error())
+		}
 	}
 
-	return nil, nil
+	// 4. Evaluate 'headers' Filter Category
+	fmt.Println("Evaluating headers filter")
+	if filter, ok := matchedRule.Filters["headers"]; ok {
+		headerCtx := make(map[string]any)
+		headersMap := make(map[string]any)
+		for key, values := range r.Header {
+			if len(values) > 0 {
+				headersMap[key] = values[0]
+			}
+		}
+		headerCtx["headers"] = headersMap
+
+		if err := executeFilter(filter, headerCtx); err != nil {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "header validation failed: "+err.Error())
+		}
+	}
+
+	// 5. Evaluate 'payload' Filter Category
+	fmt.Println("Evaluating payload filter")
+	if filter, ok := matchedRule.Filters["payload"]; ok {
+		if r.Body == nil || r.Body == http.NoBody {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "payload validation failed: request body is empty")
+		}
+
+		// Read and preserve body buffer
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			return nil, errorlib.NewResponseError(http.StatusInternalServerError, "failed to read request body: "+err.Error())
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		var payloadCtx any
+		if err := json.Unmarshal(bodyBytes, &payloadCtx); err != nil {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "payload validation failed: body is invalid JSON: "+err.Error())
+		}
+
+		if err := executeFilter(filter, payloadCtx); err != nil {
+			return nil, errorlib.NewResponseError(http.StatusBadRequest, "payload validation failed: "+err.Error())
+		}
+	}
+
+	return matchedRule, nil
 }
 
-func validateWithRule(r *http.Request, ruleEntry *CompiledRuleEntry, params map[string]string) (bool, string) {
-	// 1. Extract Body (Handle empty bodies gracefully)
-	var body interface{}
-	if r.ContentLength > 0 {
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			return false, "Invalid JSON payload"
-		}
+// ExtractNamedMatches converts path regex capture groups into a key-value map
+func extractNamedMatches(re *regexp.Regexp, path string) map[string]any {
+	matches := re.FindStringSubmatch(path)
+	if len(matches) == 0 {
+		return nil
 	}
 
-	type RequestData struct {
-		Params  map[string]string   `json:"params"`
-		Query   map[string][]string `json:"query"`
-		Headers map[string][]string `json:"headers"`
-		Body    interface{}         `json:"body"`
-	}
-
-	// 2. Build the JQ input object
-	input := RequestData{
-		Params:  params,
-		Query:   r.URL.Query(),
-		Headers: r.Header,
-		Body:    body,
-	}
-
-	// Convert struct to map for gojq compatibility
-	var inputMap map[string]interface{}
-	data, _ := json.Marshal(input)
-	json.Unmarshal(data, &inputMap)
-
-	// 3. Run each filter category (route, headers, payload, etc.)
-	for category, query := range ruleEntry.Filters {
-		iter := query.Run(inputMap)
-		v, ok := iter.Next()
-
-		// If JQ returns an error or anything other than 'true'
-		if !ok {
-			return false, fmt.Sprintf("Validation failed with error code %d logic error %s", http.StatusBadRequest, category+"input is  invalid")
-		}
-		if err, ok := v.(error); ok {
-			return false, fmt.Sprintf("%s error: %v", category, err)
-		}
-		if v != true {
-			return false, fmt.Sprintf("Request failed for category %s validation error %s", http.StatusBadRequest, category+"input is  invalid")
+	result := make(map[string]any)
+	for i, name := range re.SubexpNames() {
+		if i != 0 && name != "" {
+			result[name] = matches[i]
 		}
 	}
+	return result
+}
 
-	return true, ""
+// executeFilter runs the gojq pipeline and ensures it resolves explicitly to a true assertion
+func executeFilter(query *gojq.Query, input any) error {
+	code, err := gojq.Compile(query)
+	if err != nil {
+		return errorlib.NewResponseError(400, "compile error: "+err.Error())
+	}
+
+	iter := code.Run(input)
+	v, ok := iter.Next()
+	if !ok {
+		return fmt.Errorf("filter evaluated to empty sequence")
+	}
+
+	if err, isErr := v.(error); isErr {
+		return fmt.Errorf("execution error: %w", err)
+	}
+
+	booleanResult, isBool := v.(bool)
+	if !isBool {
+		return fmt.Errorf("filter rules must evaluate to a boolean expression, got %T", v)
+	}
+
+	if !booleanResult {
+		return fmt.Errorf("rule constraint rejected incoming input data")
+	}
+
+	return nil
 }
 
 func processDataWithTemplates(w http.ResponseWriter, data interface{}) {
@@ -165,5 +190,8 @@ func processDataWithTemplates(w http.ResponseWriter, data interface{}) {
 	case *TemplateData:
 		v.TemplateHandle.Execute(w, v.Data)
 	default:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(data)
 	}
 }
