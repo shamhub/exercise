@@ -8,16 +8,16 @@ import (
 	"github.com/itchyny/gojq"
 )
 
-type ResponseDetail struct {
-	Code         int
-	MessageQuery string
+type TemplateConfig struct {
+	TemplateFile string `jaon:"template_file"`
 }
 
 // RuleCOnfig matches the struct of each entry in route json file
 type RuleConfig struct {
-	Method    string                    `json:"method"`
-	Filters   map[string]string         `json:"filters"`
-	Responses map[string]ResponseDetail `json:"responses"`
+	Method    string            `json:"method"`
+	Filters   map[string]string `json:"filters"`
+	Responses map[string]string `json:"responses"`
+	Transform string            `json:"transform"`
 }
 
 // CompiledRule holds the pre-compiled assets for a route
@@ -28,7 +28,8 @@ type CompiledRuleEntry struct {
 	// Filters: category -> compiled JQ query
 	Filters map[string]*gojq.Query
 	// Responses: category -> code and message
-	Responses map[string]ResponseDetail
+	TemplateFilePath string
+	Transform        *gojq.Query
 }
 
 type RuleCollector struct {
@@ -53,7 +54,7 @@ func (rC *RuleCollector) CollectRules(configData []byte) {
 	}
 
 	// 2. Compile assets and store in the activeRules slice
-	for path, ruleConfig := range rawRules {
+	for path, ruleConfigEntry := range rawRules {
 		// Compile regex (anchored to start and end for exact matching)
 		re, err := regexp.Compile("^" + path + "$")
 		if err != nil {
@@ -62,7 +63,7 @@ func (rC *RuleCollector) CollectRules(configData []byte) {
 
 		compiledFilters := make(map[string]*gojq.Query)
 		// Compile each JQ filter string for this route
-		for category, jqFilterString := range ruleConfig.Filters {
+		for category, jqFilterString := range ruleConfigEntry.Filters {
 			queryStruct, err := gojq.Parse(jqFilterString)
 			if err != nil {
 				panic(fmt.Sprintf("invalid JQ filter in %s (%s): %v ", path, jqFilterString, err))
@@ -70,14 +71,28 @@ func (rC *RuleCollector) CollectRules(configData []byte) {
 			compiledFilters[category] = queryStruct
 		}
 
+		// Collect templatefile path data
+		var templateFilePath string
+		for _, pathString := range ruleConfigEntry.Responses {
+			templateFilePath = pathString
+		}
+
+		// Compile Transform Logic
+		tranformString := ruleConfigEntry.Transform
+		transformQueryTree, err := gojq.Parse(tranformString)
+		if err != nil {
+			panic(fmt.Sprintf("invalid JQ filter in %s (%s): %v ", path, tranformString, err))
+		}
+
 		rC.activeRules = append(rC.activeRules, CompiledRuleEntry{
-			PathPattern: path,
-			Regex:       re,
-			Method:      ruleConfig.Method,
-			Filters:     compiledFilters,
-			Responses:   ruleConfig.Responses,
+			PathPattern:      path,
+			Regex:            re,
+			Method:           ruleConfigEntry.Method,
+			Filters:          compiledFilters,
+			TemplateFilePath: templateFilePath,
+			Transform:        transformQueryTree,
 		})
 	}
 
-	fmt.Sprintf("Successfully loaded %d validation rules from config json\n", len(rC.activeRules))
+	fmt.Printf("Successfully loaded %d validation rules from config json\n", len(rC.activeRules))
 }

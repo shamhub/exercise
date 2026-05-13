@@ -1,0 +1,10 @@
+{
+    "technologies": "devops",
+    "tools":[
+        "jenkins",
+        "bamboo",
+        "stackstorm",
+        "ansible",
+        "docker"
+    ]
+}

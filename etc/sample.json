@@ -1,0 +1,10 @@
+{
+    "gender": "male",
+    "age": 28,
+    "name":{
+        "title": "Mr",
+        "first": "Arlo",
+        "last": "king"
+    },
+    "Authorization": "Bearer 0099"
+}

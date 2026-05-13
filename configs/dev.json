@@ -1,1 +1,15 @@
-
+{
+  "endpoints": [
+    {
+      "path": "/submit",
+      "validation": {
+        "query_params": ". | has(\"id\")",
+        "payload": ". | .age >= 18 and (.email | contains(\"@\"))",
+        "error_message": "Invalid request: Verify age (18+) and email."
+      },
+      "response": {
+        "template_file": "templates/success.html"
+      }
+    }
+  ]
+}

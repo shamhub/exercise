@@ -1,22 +1,14 @@
 {
-  "/api/v1/health": {
-    "method": "GET",
-    "filters": {
-      "headers": ".headers[\"User-Agent\"] != null"
-    },
-    "responses": {
-      "headers": { "code": 401, "message": "Missing or invalid User-Agent header" }
-    }
-  },
   "/api/v1/user/(?P<userId>[^/]+)": {
-    "method": "GET",
+    "method": "POST",
     "filters": {
       "route": "(.params.userId | length) > 0",
-      "headers": ".headers[\"Authorization\"] != null"
+      "query_params": ". | has(\"name\")",
+      "headers": ".headers[\"Authorization\"] != null",
+      "payload": ". | .age >= 18 and (.email | contains(\"@\"))"
     },
     "responses": {
-      "route": { "code": 400, "message": "Invalid User ID format in URL" },
-      "headers": { "code": 401, "message": "Missing or invalid Authorization header" }
+        "template_file": "templates/success.html"
     }
   },
   "/api/v1/user/(?P<userId>[^/]+)/profile": {
@@ -26,43 +18,7 @@
       "payload": "(.body.display_name | length) >= 3"
     },
     "responses": {
-      "route": { "code": 400, "message": "Invalid User ID format in URL" },
-      "payload": { "code": 422, "message": "Invalid Display Name format" }
-    }
-  },
-  "/api/v1/orders": {
-    "method": "POST",
-    "filters": {
-      "payload": "(.body.items | length) > 0",
-      "query": "(.query.priority[0] == \"high\")"
-    },
-    "responses": {
-      "payload": { "code": 422, "message": "Invalid email address format" }
-    }
-  },
-   "/api/v1/org/(?P<orgId>[^/]+)/department/(?P<deptId>[^/]+)": {
-    "method": "GET",
-    "filters": {
-      "route": "(.params.orgId | length > 0) and (.params.deptId | tonumber > 100)",
-      "headers": ".headers[\"X-Access-Level\"] | contains(\"admin\")"
-    },
-    "responses": {
-      "route": { 
-        "code": 400, 
-        "message": "Invalid combination: Org ID (.params.orgId) and Department ID (.params.deptId) format mismatch"
-      },
-      "headers": { "code": 401, "message": "Missing or invalid Authorization header" }
-    }
-  },
-  "/api/v1/project/(?P<projId>[^/]+)/task/(?P<taskId>[^/]+)/status": {
-    "method": "PATCH",
-    "filters": {
-      "route": ".params.projId != .params.taskId",
-      "payload": ".body.status == \"completed\""
-    },
-    "responses": {
-      "route": { "code": 400, "message": "Invalid combination: Org ID (.params.orgId) and Department ID (.params.deptId) - must not match" },
-      "payload": { "code": 422, "message": "Invalid email address format" }
+        "template_file":"templates/index.html"
     }
   }
 }
