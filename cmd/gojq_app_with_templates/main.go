@@ -14,7 +14,7 @@ func main() {
 	}
 
 	// 2. Register http handlers
-	httpservice.GETTemplate("/api/v2/user/{userId}", handler.GetUserId)
+	httpservice.GETTemplate("/api/v2/user/{userId}", handler.GetUser)
 	httpservice.POSTTemplate("/api/v1/user/{userId}", handler.PostUserId)
 
 	// 3. start http server

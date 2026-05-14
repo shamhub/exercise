@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Template functions</h1>
+
+    <h3>Items</h3>
+    <ul>
+        {{range .Items}}
+            <li>
+                {{.}}
+            </li>
+        {{end}}
+    </ul>
+
+    <div>
+        {{if gt .Number 10}}
+            <b>Wow, that is greater than 10</b>
+        {{else}}
+            <b>Less than 10</b>
+        {{end}}
+    </div>
+
+    <div>
+        <p>
+            The Capitalisation of name is {{toUpper .Name}}
+        </p>
+    </div>
+
+    <div>
+        Today's date is {{formateDate .CurrentDate}}
+    </div>
+</body>
+</html>
