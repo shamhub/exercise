@@ -16,6 +16,7 @@ import (
 type TemplateData struct {
 	TemplateHandle *template.Template
 	Data           interface{}
+	TemplateName   string
 }
 
 type TemplateHandler func(*RequestContextForTemplate) (interface{}, error)
@@ -40,7 +41,7 @@ func (h TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processDataWithTemplates(w, data)
+	processDataWithTemplates(w, resourcePath, data)
 }
 
 func validateRequest(r *http.Request) (*CompiledRuleEntry, errorlib.HttpResponseError) {
@@ -181,17 +182,21 @@ func executeFilter(query *gojq.Query, input any) error {
 	return nil
 }
 
-func processDataWithTemplates(w http.ResponseWriter, data interface{}) {
-	fmt.Println("processing data")
+func processDataWithTemplates(w http.ResponseWriter, resourcePath string, data interface{}) {
+	fmt.Println("processing response data to render template")
 
 	switch v := data.(type) {
 	case TemplateData:
-		v.TemplateHandle.Execute(w, v.Data)
+		err := v.TemplateHandle.ExecuteTemplate(w, v.TemplateName, v.Data)
+		if err != nil {
+			processError(w, resourcePath, err)
+		}
 	case *TemplateData:
-		v.TemplateHandle.Execute(w, v.Data)
+		err := v.TemplateHandle.ExecuteTemplate(w, v.TemplateName, v.Data)
+		if err != nil {
+			processError(w, resourcePath, err)
+		}
 	default:
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(data)
+		processData(w, data)
 	}
 }

@@ -13,3 +13,5 @@
     - `curl --location 'http://localhost:3000/api/v1/user/johndoe?name=john%20doe' --header 'Authorization: Bearer dfssd' --header 'Content-Type: application/json' --data-raw '{
     "age": 1,
     "email": "a@b.com"}'`
+
+    - `curl --location 'http://localhost:3000/api/v2/user/johndoe'`

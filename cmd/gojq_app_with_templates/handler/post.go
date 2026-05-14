@@ -27,8 +27,9 @@ func PostUserId(ctx *httpservice.RequestContextForTemplate) (interface{}, error)
 	templateFilePath, _ := ctx.GetTemplatePath()
 	tmpl, err := template.ParseFiles(templateFilePath)
 	if err != nil {
-		return nil, errorlib.NewResponseError(http.StatusInternalServerError, "template file not found")
+		return nil, errorlib.NewResponseError(http.StatusInternalServerError, err.Error())
 	}
+
 	return httpservice.TemplateData{
 		TemplateHandle: tmpl,
 		Data:           &pMap,

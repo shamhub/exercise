@@ -20,5 +20,14 @@
     "responses": {
         "template_file":"templates/index.html"
     }
+  },
+  "/api/v2/user/(?P<userId>[^/]+)": {
+    "method": "GET",
+    "filters": {
+      "route": "(.params.userId | length) > 0"
+    },
+    "responses": {
+        "template_file":"templates/message.html"
+    }
   }
 }
