@@ -15,3 +15,8 @@
     "email": "a@b.com"}'`
 
     - `curl --location 'http://localhost:3000/api/v2/user/johndoe'`
+
+
+### Added more applications
+
+![cmd-folder](image.png)
