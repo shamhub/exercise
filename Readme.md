@@ -13,7 +13,7 @@
 
     - GET `localhost:3000/weather?lat=39.7456&long=-97.0892`
 
-## Running instructions - `cmd/gojq_app_with_templates`
+## 3) Running instructions - `cmd/gojq_app_with_templates`
 
 - Set `APP_ENV=prod` in shell env
     
@@ -24,6 +24,6 @@
 - `curl --location 'http://localhost:3000/api/v2/user/johndoe'`
 
 
-## Code structure of root folder
+## 4) Code structure of root folder
 
 ![cmd-folder](image.png)
