@@ -2,6 +2,8 @@
 
 - This code reflects on building abstractions, without using GenAI tools
 - This code has three different apps rooted from `cmd/`
+- This code reflects on error handling for http backend - `pkg/errorlib`
+- This code reflects on the approach to introduce http handler - `pkg/httpservice`
 
 ## 2) Running instructions - `cmd/weather`
 
